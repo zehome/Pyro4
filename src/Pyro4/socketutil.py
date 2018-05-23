@@ -176,7 +176,7 @@ def receiveData(sock, size):
                 data = b"".join(chunks)
                 del chunks
                 if len(data) != size:
-                    err = ConnectionClosedError("receiving: not enough data")
+                    err = ConnectionClosedError("receiving: not enough data: {} on {}".format(len(data), size))
                     err.partialData = data  # store the message that was received until now
                     raise err
                 return data  # yay, complete

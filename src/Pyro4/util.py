@@ -668,25 +668,49 @@ class MsgpackSerializer(SerializerBase):
     """(de)serializer that wraps the msgpack serialization protocol."""
     serializer_id = 6  # never change this
 
-    __type_replacements = {}
+    _type_replacements = {}
 
     def dumpsCall(self, obj, method, vargs, kwargs):
-        return msgpack.packb((obj, method, vargs, kwargs), use_bin_type=True, default=self.default)
+        try:
+            return msgpack.packb((obj, method, vargs, kwargs), use_bin_type=True, default=self.default)
+        except:
+            print("dumpsCall failed")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def dumps(self, data):
-        return msgpack.packb(data, use_bin_type=True, default=self.default)
+        try:
+            return msgpack.packb(data, use_bin_type=True, default=self.default)
+        except:
+            print("dumps failed")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def loadsCall(self, data):
         data = self._convertToBytes(data)
-        obj, method, vargs, kwargs = msgpack.unpackb(data, raw=False, object_hook=self.object_hook)
+        try:
+            obj, method, vargs, kwargs = msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
+        except:
+            print("loadsCall failed")
+            import traceback
+            traceback.print_exc()
+            raise
         return obj, method, vargs, kwargs
 
     def loads(self, data):
         data = self._convertToBytes(data)
-        return msgpack.unpackb(data, raw=False, object_hook=self.object_hook, ext_hook=self.ext_hook)
+        try:
+            return msgpack.unpackb(data, encoding="utf-8", object_hook=self.object_hook, ext_hook=self.ext_hook)
+        except:
+            print("loads failed")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def default(self, obj):
-        replacer = self.__type_replacements.get(type(obj), None)
+        replacer = self._type_replacements.get(type(obj), None)
         if replacer:
             obj = replacer(obj)
         if isinstance(obj, set):
@@ -730,7 +754,7 @@ class MsgpackSerializer(SerializerBase):
     def register_type_replacement(cls, object_type, replacement_function):
         if object_type is type or not inspect.isclass(object_type):
             raise ValueError("refusing to register replacement for a non-type or the type 'type' itself")
-        cls.__type_replacements[object_type] = replacement_function
+        cls._type_replacements[object_type] = replacement_function
 
 
 """The various serializers that are supported"""
@@ -750,7 +774,6 @@ def get_serializer_by_id(sid):
         return _serializers_by_id[sid]
     except KeyError:
         raise errors.SerializeError("no serializer available for id %d" % sid)
-
 
 # determine the serializers that are supported
 try:
